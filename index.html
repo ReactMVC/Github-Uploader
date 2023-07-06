@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Image</title>
+</head>
+
+<body>
+    <!-- Video element to display the webcam feed -->
+    <video id="video" width="640" height="480" autoplay></video>
+
+    <!-- Button to capture an image from the video feed -->
+    <button id="capture-btn">Capture</button>
+
+    <!-- Button to upload the captured image to the server -->
+    <button id="upload-btn">Upload</button>
+
+    <script>
+        // Get references to the video and button elements
+        const video = document.getElementById('video');
+        const captureButton = document.getElementById('capture-btn');
+        const uploadButton = document.getElementById('upload-btn');
+
+        // Variable to store the captured image
+        let capturedImage = null;
+
+        // Add a click event listener to the capture button
+        captureButton.addEventListener('click', () => {
+            // Create a canvas element with the same dimensions as the video
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw the current frame of the video onto the canvas
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert the canvas to a Blob and create a new File object with a name of "image.jpg"
+            canvas.toBlob((blob) => {
+                capturedImage = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+            }, 'image/jpeg', 0.8);
+
+            // Pause the video
+            video.pause();
+        });
+
+        // Add a click event listener to the upload button
+        uploadButton.addEventListener('click', () => {
+            // Check if an image has been captured
+            if (capturedImage) {
+                // Create a new FormData object and append the captured image to it
+                const formData = new FormData();
+                formData.append('file', capturedImage);
+
+                // Call the postFormData function to upload the image to the server
+                postFormData(formData);
+            } else {
+                // Display an error message if no image has been captured
+                alert('Please capture an image first!');
+            }
+        });
+
+        // Function to post the form data to the server via AJAX
+        function postFormData(formData) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'api.php', true);
+
+            // Add an event listener to handle the response from the server
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    // Log the response text to the console
+                    console.log(xhr.responseText);
+
+                    // Add an HTML element to the page to indicate success
+                    const messageContainer = document.createElement('div');
+                    const message = document.createElement('p');
+                    message.textContent = 'The image has been uploaded successfully!';
+                    messageContainer.appendChild(message);
+                    document.body.appendChild(messageContainer);
+
+                    // Display an alert to indicate success
+                    alert('The image has been uploaded successfully!');
+
+                    // Pause the video and reset the capturedImage variable
+                    video.pause();
+                    capturedImage = null;
+                } else {
+                    // Log an error message to the console if the status code is not 200
+                    console.error(xhr.statusText);
+                }
+            };
+
+            // Send the form data to the server
+            xhr.send(formData);
+        }
+
+        // Add a "Capture New" button to the page
+        const captureNewButton = document.createElement('button');
+        captureNewButton.textContent = 'Capture New';
+        document.body.appendChild(captureNewButton);
+
+        // Add a click event listener to the "Capture New" button
+        captureNewButton.addEventListener('click', () => {
+            // Pause the video
+            video.pause();
+
+            // Remove any previous success message from the page
+            const messageContainer = document.querySelector('div');
+            if (messageContainer) {
+                document.body.removeChild(messageContainer);
+            }
+
+            // Restart the video stream
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+
+            // Reset the capturedImage variable
+            capturedImage = null;
+        });
+
+        // Get access to the user's webcam and start the video stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    </script>
+</body>
+
+</html>
